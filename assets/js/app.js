@@ -6,7 +6,9 @@ const defaultSettings = {
   hoursPerDay: 7,
   vat: 20,
   currency: '€',
-  defaultNotes: ''
+  eurToMgaRate: 4500,
+  defaultNotes: '',
+  catalogPrices: {}
 };
 
 const serviceCatalog = [
@@ -92,6 +94,16 @@ const serviceCatalog = [
   }
 ];
 
+const defaultCatalogPrices = buildDefaultCatalogPrices();
+defaultSettings.catalogPrices = { ...defaultCatalogPrices };
+
+function buildDefaultCatalogPrices() {
+  return serviceCatalog.reduce((acc, service) => {
+    acc[service.title] = service.unitPrice;
+    return acc;
+  }, {});
+}
+
 const templates = {
   catalogueItem: document.getElementById('catalogue-item-template'),
   lineRow: document.getElementById('line-row-template')
@@ -147,6 +159,11 @@ function loadState() {
   try {
     const parsed = JSON.parse(raw);
     state.settings = { ...defaultSettings, ...(parsed.settings || {}) };
+    state.settings.catalogPrices = {
+      ...defaultCatalogPrices,
+      ...(parsed.settings?.catalogPrices || {})
+    };
+    state.settings.eurToMgaRate = parsed.settings?.eurToMgaRate || defaultSettings.eurToMgaRate;
     state.quotes = parsed.quotes || [];
   } catch (e) {
     console.warn('Impossible de charger le stockage, réinitialisation.', e);
@@ -214,10 +231,14 @@ function renderCatalogue() {
   serviceCatalog.forEach((service) => {
     const node = templates.catalogueItem.content.cloneNode(true);
     node.querySelector('.title').textContent = service.title;
-    node.querySelector('.description').textContent = service.description;
+    node.querySelector('.description').textContent = `${service.description} – ${formatCurrency(getServicePrice(service.title))}`;
     node.querySelector('.add-service').addEventListener('click', () => addServiceLine(service));
     container.appendChild(node);
   });
+}
+
+function getServicePrice(title) {
+  return state.settings.catalogPrices?.[title] ?? defaultCatalogPrices[title] ?? 0;
 }
 
 function addServiceLine(service) {
@@ -227,7 +248,7 @@ function addServiceLine(service) {
     category: service.category,
     mode: service.mode,
     quantity: service.quantity,
-    unitPrice: service.unitPrice
+    unitPrice: getServicePrice(service.title)
   };
   state.currentQuote.lines.push(line);
   renderLines();
@@ -281,30 +302,42 @@ function syncAdjustments() {
 
 function updateTotals() {
   syncAdjustments();
+  const summary = calculateTotals(state.currentQuote);
+  state.currentQuote.totals = summary.totals;
+  renderTotals(summary.categories, summary.subtotal, summary.urgencyAdded, summary.discounts, summary.vatAmount, summary.totalTTC);
+}
+
+function calculateTotals(quote) {
   const categories = {};
   let subtotal = 0;
 
-  state.currentQuote.lines.forEach((line) => {
+  quote.lines.forEach((line) => {
     const lineTotal = line.quantity * line.unitPrice;
     subtotal += lineTotal;
     categories[line.category] = (categories[line.category] || 0) + lineTotal;
   });
 
-  const urgencyAdded = subtotal * state.currentQuote.urgency;
-  const discountPercent = subtotal * (state.currentQuote.discountRate / 100);
-  const discountAmount = state.currentQuote.discountAmount;
+  const urgencyAdded = subtotal * quote.urgency;
+  const discountPercent = subtotal * (quote.discountRate / 100);
+  const discountAmount = quote.discountAmount;
   const totalAfterAdjustments = subtotal + urgencyAdded - discountPercent - discountAmount;
-  const vatAmount = totalAfterAdjustments * (state.currentQuote.vat / 100);
+  const vatAmount = totalAfterAdjustments * (quote.vat / 100);
   const totalTTC = totalAfterAdjustments + vatAmount;
 
-  state.currentQuote.totals = {
-    perCategory: categories,
-    ht: Math.max(totalAfterAdjustments, 0),
+  return {
+    categories,
+    subtotal,
+    urgencyAdded,
+    discounts: discountPercent + discountAmount,
     vatAmount,
-    ttc: Math.max(totalTTC, 0)
+    totalTTC,
+    totals: {
+      perCategory: categories,
+      ht: Math.max(totalAfterAdjustments, 0),
+      vatAmount,
+      ttc: Math.max(totalTTC, 0)
+    }
   };
-
-  renderTotals(categories, subtotal, urgencyAdded, discountPercent + discountAmount, vatAmount, totalTTC);
 }
 
 function renderTotals(categories, subtotal, urgencyAdded, discounts, vatAmount, totalTTC) {
@@ -336,6 +369,37 @@ function renderTotals(categories, subtotal, urgencyAdded, discounts, vatAmount, 
 
 function formatCurrency(amount) {
   return `${amount.toFixed(0)} ${state.settings.currency}`;
+}
+
+function updateCurrencyLabels() {
+  const label = document.getElementById('currency-label');
+  if (label) label.textContent = state.settings.currency;
+}
+
+function getConversionFactor(fromCurrency, toCurrency, rate) {
+  if (fromCurrency === toCurrency) return 1;
+  const safeRate = rate > 0 ? rate : 1;
+  if (fromCurrency === '€' && toCurrency === 'MGA') return safeRate;
+  if (fromCurrency === 'MGA' && toCurrency === '€') return 1 / safeRate;
+  return 1;
+}
+
+function applyCurrencyConversionToQuotes(factor) {
+  state.quotes = state.quotes.map((quote) => convertQuoteCurrency({ ...quote }, factor));
+}
+
+function applyCurrencyConversionToCurrentQuote(factor) {
+  convertQuoteCurrency(state.currentQuote, factor);
+  renderLines();
+  updateTotals();
+}
+
+function convertQuoteCurrency(quote, factor) {
+  quote.lines = quote.lines.map((line) => ({ ...line, unitPrice: Math.round(line.unitPrice * factor) }));
+  quote.discountAmount = Math.round((quote.discountAmount || 0) * factor);
+  const totals = calculateTotals(quote);
+  quote.totals = totals.totals;
+  return quote;
 }
 
 function saveQuote() {
@@ -400,23 +464,86 @@ function renderSettings() {
   document.getElementById('hours-per-day').value = state.settings.hoursPerDay;
   document.getElementById('settings-vat').value = state.settings.vat;
   document.getElementById('currency').value = state.settings.currency;
+  document.getElementById('eur-to-mga').value = state.settings.eurToMgaRate;
   document.getElementById('default-notes').value = state.settings.defaultNotes;
   document.getElementById('vat-rate').value = state.settings.vat;
+  renderCatalogueSettings();
+}
+
+function renderCatalogueSettings() {
+  const container = document.getElementById('catalogue-settings');
+  container.innerHTML = '';
+
+  serviceCatalog.forEach((service) => {
+    const label = document.createElement('label');
+    const header = document.createElement('div');
+    header.className = 'service-name';
+    header.innerHTML = `<span>${service.title}</span><span class="muted">${state.settings.currency}</span>`;
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.step = '10';
+    input.value = getServicePrice(service.title);
+    input.classList.add('catalog-price');
+    input.dataset.title = service.title;
+
+    label.appendChild(header);
+    label.appendChild(input);
+    container.appendChild(label);
+  });
+
+  updateCurrencyLabels();
 }
 
 function saveSettings(e) {
   e.preventDefault();
+
+  const previousCurrency = state.settings.currency;
+  const newCurrency = document.getElementById('currency').value || '€';
+  const eurToMgaRate = Number(document.getElementById('eur-to-mga').value || state.settings.eurToMgaRate || 1);
+  const catalogPrices = {};
+
+  document.querySelectorAll('.catalog-price').forEach((input) => {
+    catalogPrices[input.dataset.title] = Number(input.value || 0);
+  });
+
+  let rateHour = Number(document.getElementById('rate-hour').value || 0);
+  let rateDay = Number(document.getElementById('rate-day').value || 0);
+  const hoursPerDay = Number(document.getElementById('hours-per-day').value || 0);
+  const vat = Number(document.getElementById('settings-vat').value || 0);
+  const defaultNotes = document.getElementById('default-notes').value;
+
+  const conversionFactor = getConversionFactor(previousCurrency, newCurrency, eurToMgaRate);
+
+  if (conversionFactor !== 1) {
+    rateHour = Math.round(rateHour * conversionFactor);
+    rateDay = Math.round(rateDay * conversionFactor);
+    Object.keys(catalogPrices).forEach((title) => {
+      catalogPrices[title] = Math.round(catalogPrices[title] * conversionFactor);
+    });
+    applyCurrencyConversionToQuotes(conversionFactor);
+    applyCurrencyConversionToCurrentQuote(conversionFactor);
+  }
+
   state.settings = {
-    rateHour: Number(document.getElementById('rate-hour').value || 0),
-    rateDay: Number(document.getElementById('rate-day').value || 0),
-    hoursPerDay: Number(document.getElementById('hours-per-day').value || 0),
-    vat: Number(document.getElementById('settings-vat').value || 0),
-    currency: document.getElementById('currency').value || '€',
-    defaultNotes: document.getElementById('default-notes').value
+    rateHour,
+    rateDay,
+    hoursPerDay,
+    vat,
+    currency: newCurrency,
+    eurToMgaRate,
+    defaultNotes,
+    catalogPrices
   };
   state.currentQuote.vat = state.settings.vat;
   document.getElementById('vat-rate').value = state.settings.vat;
   persistState();
+  renderSettings();
+  renderCatalogue();
+  renderLines();
+  renderQuotesTables();
+  updateCurrencyLabels();
   updateTotals();
   alert('Paramètres enregistrés');
 }
