@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MotionDevis</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">MD</div>
+      <div>
+        <h1>MotionDevis</h1>
+        <p class="subtitle">Estimations claires pour motion designers</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-link active" data-target="dashboard">Dashboard</button>
+      <button class="nav-link" data-target="new-quote">Nouveau devis</button>
+      <button class="nav-link" data-target="quotes">Devis / Clients</button>
+      <button class="nav-link" data-target="settings">Paramètres</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section id="dashboard" class="view active">
+      <div class="view-header">
+        <h2>Dashboard</h2>
+        <button class="primary" id="quick-new-quote">Nouveau devis</button>
+      </div>
+      <div class="cards">
+        <div class="card stats" id="stats-card">
+          <div class="stat-item">
+            <p class="label">Total devis</p>
+            <p class="value" id="stat-total">0</p>
+          </div>
+          <div class="stat-item">
+            <p class="label">En attente</p>
+            <p class="value" id="stat-pending">0</p>
+          </div>
+          <div class="stat-item">
+            <p class="label">Clients</p>
+            <p class="value" id="stat-clients">0</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Derniers devis</h3>
+          </div>
+          <div class="table-wrapper">
+            <table class="table" id="recent-quotes">
+              <thead>
+                <tr><th>Projet</th><th>Client</th><th>Date</th><th>Total</th><th>Statut</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="new-quote" class="view">
+      <div class="view-header">
+        <h2>Créer un devis</h2>
+        <div class="actions">
+          <button class="ghost" id="clear-quote">Réinitialiser</button>
+          <button class="primary" id="save-quote">Enregistrer</button>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <form class="card" id="client-form">
+          <h3>Infos Client & Projet</h3>
+          <div class="form-grid">
+            <label>Nom du client<input type="text" id="client-name" required></label>
+            <label>Société<input type="text" id="client-company"></label>
+            <label>Email<input type="email" id="client-email"></label>
+            <label>Titre du projet<input type="text" id="project-title" required></label>
+            <label class="full">Description courte<textarea id="project-description" rows="2"></textarea></label>
+            <label>Type de vidéo<select id="video-type">
+              <option>Explicative</option><option>Publicité</option><option>Réseaux sociaux</option><option>Corporate</option><option>Autre</option>
+            </select></label>
+            <label>Deadline souhaitée<input type="date" id="project-deadline"></label>
+          </div>
+        </form>
+
+        <div class="card" id="video-params">
+          <h3>Paramètres vidéo</h3>
+          <div class="form-grid">
+            <label>Durée (secondes)<input type="number" id="video-duration" min="0" value="60"></label>
+            <label>Complexité<select id="video-complexity">
+              <option value="simple">Simple</option>
+              <option value="standard" selected>Standard</option>
+              <option value="avancee">Avancée</option>
+              <option value="premium">Premium</option>
+            </select></label>
+            <label>Style graphique<select id="video-style">
+              <option value="flat">Flat</option>
+              <option value="isometrique">Isométrique</option>
+              <option value="illustration">Illustration détaillée</option>
+              <option value="3d">3D</option>
+              <option value="autre">Autre</option>
+            </select></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid two reverse">
+        <div class="card" id="catalogue">
+          <div class="card-header">
+            <h3>Catalogue de prestations</h3>
+            <p class="muted">Ajoute des prestations pour construire le devis.</p>
+          </div>
+          <div class="catalogue-list" id="catalogue-list"></div>
+        </div>
+
+        <div class="card" id="quote-details">
+          <div class="card-header">
+            <h3>Détail du devis</h3>
+            <p class="muted">Ajuste quantités et tarifs.</p>
+          </div>
+          <div class="table-wrapper">
+            <table class="table" id="lines-table">
+              <thead>
+                <tr><th>Prestation</th><th>Catégorie</th><th>Mode</th><th>Qté</th><th>PU (€)</th><th>Total</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card" id="adjustments">
+          <h3>Remises & urgences</h3>
+          <div class="form-grid">
+            <label>Remise (%)<input type="number" id="discount-rate" min="0" max="100" value="0"></label>
+            <label>Remise (montant €)<input type="number" id="discount-amount" min="0" value="0"></label>
+            <label>Urgence<select id="urgency">
+              <option value="0">Aucune</option>
+              <option value="0.2">+20 %</option>
+              <option value="0.3">+30 %</option>
+              <option value="0.5">+50 %</option>
+            </select></label>
+            <label>TVA (%)<input type="number" id="vat-rate" min="0" value="20"></label>
+          </div>
+        </div>
+
+        <div class="card totals" id="totals-card">
+          <h3>Résumé & totaux</h3>
+          <ul class="totals-list" id="totals-list"></ul>
+          <div class="totals-final">
+            <div><span>Total HT</span><strong id="total-ht">0 €</strong></div>
+            <div><span>TVA</span><strong id="total-vat">0 €</strong></div>
+            <div class="grand-total"><span>Total TTC</span><strong id="total-ttc">0 €</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quotes" class="view">
+      <div class="view-header">
+        <h2>Devis / Clients</h2>
+        <button class="ghost" id="export-quotes">Exporter (JSON)</button>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="table" id="quotes-table">
+            <thead>
+              <tr><th>Projet</th><th>Client</th><th>Date</th><th>Total TTC</th><th>Statut</th><th>Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="view">
+      <div class="view-header">
+        <h2>Paramètres</h2>
+        <button class="primary" id="save-settings">Enregistrer</button>
+      </div>
+      <form class="card" id="settings-form">
+        <div class="form-grid">
+          <label>Taux horaire (€ / h)<input type="number" id="rate-hour" min="0" value="75"></label>
+          <label>Taux journalier (€ / jour)<input type="number" id="rate-day" min="0" value="450"></label>
+          <label>Heures par jour<input type="number" id="hours-per-day" min="1" max="12" value="7"></label>
+          <label>TVA (%)<input type="number" id="settings-vat" min="0" value="20"></label>
+          <label>Monnaie<input type="text" id="currency" value="€"></label>
+          <label>Notes par défaut<textarea id="default-notes" rows="3" placeholder="Conditions, délais, notes..."></textarea></label>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>MotionDevis – SPA 100% HTML/CSS/JS. Données stockées dans votre navigateur.</p>
+  </footer>
+
+  <template id="catalogue-item-template">
+    <div class="catalogue-item">
+      <div>
+        <p class="title"></p>
+        <p class="muted description"></p>
+      </div>
+      <button class="ghost add-service">Ajouter</button>
+    </div>
+  </template>
+
+  <template id="line-row-template">
+    <tr>
+      <td class="line-title"></td>
+      <td class="line-category"></td>
+      <td class="line-mode"></td>
+      <td><input type="number" class="line-qty" min="0" step="0.5"></td>
+      <td><input type="number" class="line-unit" min="0" step="10"></td>
+      <td class="line-total"></td>
+      <td><button class="icon-btn remove-line" title="Supprimer">✕</button></td>
+    </tr>
+  </template>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
