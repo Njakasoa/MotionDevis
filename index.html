@@ -102,6 +102,7 @@
               <option value="3d">3D</option>
               <option value="autre">Autre</option>
             </select></label>
+            <label>Retours clients prévus<input type="number" id="feedback-rounds" min="0" value="1"></label>
           </div>
         </div>
       </div>
@@ -179,7 +180,10 @@
     <section id="settings" class="view">
       <div class="view-header">
         <h2>Paramètres</h2>
-        <button class="primary" id="save-settings">Enregistrer</button>
+        <div class="actions">
+          <button class="ghost" id="reset-storage">Réinitialiser</button>
+          <button class="primary" id="save-settings">Enregistrer</button>
+        </div>
       </div>
       <form class="card" id="settings-form">
         <div class="form-grid">
