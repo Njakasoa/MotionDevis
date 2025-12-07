@@ -123,7 +123,7 @@
           <div class="table-wrapper">
             <table class="table" id="lines-table">
               <thead>
-                <tr><th>Prestation</th><th>Catégorie</th><th>Mode</th><th>Qté</th><th>PU (€)</th><th>Total</th><th></th></tr>
+                <tr><th>Prestation</th><th>Catégorie</th><th>Mode</th><th>Qté</th><th>PU (<span id="currency-label">€</span>)</th><th>Total</th><th></th></tr>
               </thead>
               <tbody></tbody>
             </table>
@@ -187,10 +187,24 @@
           <label>Taux journalier (€ / jour)<input type="number" id="rate-day" min="0" value="450"></label>
           <label>Heures par jour<input type="number" id="hours-per-day" min="1" max="12" value="7"></label>
           <label>TVA (%)<input type="number" id="settings-vat" min="0" value="20"></label>
-          <label>Monnaie<input type="text" id="currency" value="€"></label>
+          <label>Monnaie
+            <select id="currency">
+              <option value="€">Euro (€)</option>
+              <option value="MGA">Ariary (MGA)</option>
+            </select>
+          </label>
+          <label>1 € = combien en MGA ?<input type="number" id="eur-to-mga" min="1" value="4500"></label>
           <label>Notes par défaut<textarea id="default-notes" rows="3" placeholder="Conditions, délais, notes..."></textarea></label>
         </div>
       </form>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Tarifs du catalogue</h3>
+          <p class="muted">Ajuste les prix qui alimentent les prestations.</p>
+        </div>
+        <div class="catalogue-settings" id="catalogue-settings"></div>
+      </div>
     </section>
   </main>
 

@@ -223,7 +223,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   gap: 16px;
 }
 
-.grid.two.reverse { grid-template-columns: 1.4fr 1fr; }
+.grid.two.reverse { grid-template-columns: 0.9fr 2fr; }
 
 .form-grid {
   display: grid;
@@ -275,6 +275,26 @@ label.full { grid-column: 1 / -1; }
 .catalogue-item .description { color: var(--muted); font-size: 14px; }
 
 .muted { color: var(--muted); font-size: 14px; }
+
+.catalogue-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.catalogue-settings label {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.catalogue-settings .service-name {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
 
 .table input {
   width: 100%;
